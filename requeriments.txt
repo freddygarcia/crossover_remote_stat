@@ -1,2 +1,4 @@
 paramiko==2.4.0
 pypiwin32==220
+PyMySQL==0.7.11
+SQLAlchemy==1.1.15
