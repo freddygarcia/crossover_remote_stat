@@ -3,10 +3,11 @@ from sqlalchemy import Column, Integer, String, DateTime, create_engine, Foreign
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.orm import relationship
-from app import config
+from CrossOverAssignment import config
 
-DB_CONFIG =  config['DATABASE']
-engine = create_engine('mysql+pymysql://{USER}:{PASS}@{HOST}/{NAME}'.format(**DB_CONFIG))
+DB_CONFIG = dict(config._sections['DATABASE'])
+
+engine = create_engine('mysql+pymysql://{user}:{pass}@{host}/{name}'.format(**DB_CONFIG))
 Base = declarative_base()
 Session = sessionmaker(engine)()
 

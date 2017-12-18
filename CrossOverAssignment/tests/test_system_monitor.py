@@ -1,6 +1,6 @@
 import unittest
 
-from app.client import SystemMonitor
+from CrossOverAssignment.app.client_side.client import SystemMonitor
 
 class TestSystemMonitor(unittest.TestCase):
 	"""docstring for TestSystemMonitor"""
