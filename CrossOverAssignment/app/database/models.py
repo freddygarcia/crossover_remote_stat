@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, create_engine, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, \
+							Text, create_engine, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.orm import relationship
@@ -46,6 +47,18 @@ class ScanType(Base):
 	def __repr__(self):
 		return '<ScanType(description="{}")>'.format(self.description)
 
+class WindowsEventLog(Base):
+	__tablename__ = 'windows_event_log'
+
+	id = Column(String(10), primary_key=True)
+	client_id = Column(Integer, ForeignKey('client.id'))
+	event_id = Column(Integer)
+	event_time = Column(DateTime)
+	event_type = Column(String(50))
+	event_msg = Column(Text)
+	event_record = Column(Integer)
+	event_source = Column(String(50))
+	
 
 class ScanResult(Base):
 	__tablename__ = 'scan_result'
