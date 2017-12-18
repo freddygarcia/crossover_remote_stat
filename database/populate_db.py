@@ -1,9 +1,8 @@
-from sqlalchemy.orm.session import sessionmaker
-from models import engine, ClientResult
+from models import engine, Client, ScanType, Base, Session
 
-Session = sessionmaker(engine)()
+Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine)
 
-c = ClientResult()
-c.ip_address = 'localhost'
-Session.add(c)
+Session.add(ScanType('cpu', 'Procesador'))
+Session.add(ScanType('memory', 'Memoria Virtual'))
 Session.commit()
