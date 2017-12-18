@@ -1,23 +1,29 @@
 from datetime import datetime
 from hashlib import sha1
-from hmac import new_hmac
-from platform import system
-from pickle import pickle_loads, pickle_dumps
+from hmac import new as new_hmac
+from platform import system, node
+from pickle import dumps as pickle_dumps
 from psutil import cpu_percent, virtual_memory
 from subprocess import Popen, PIPE
 from uptime import boottime
+from requests import post
 
 class SystemMonitor:
 
 	def __init__(self):
 		self.platform = self.determine_os()
 		self.uptime = self.get_uptime()
-		self.memory_usage = self.get_memory_usage()
 		self.cpu_percent = self.get_cpu_percent()
+		self.memory_usage = self.get_memory_usage()
+		self.hostname = self.determine_hostname()
 
 	def determine_os(self):
 		"""Get host OS"""
 		return system()
+
+	def determine_hostname(self):
+		"""Get host name"""
+		return node()
 
 	def get_cpu_percent(self):
 		"""Get current system wide cpu usage as a percentage"""
@@ -55,18 +61,41 @@ class SystemMonitor:
 		return {
 			'os' : self.platform,
 			'uptime' : self.uptime,
-			'memory_usage' : self.memory_usage,
-			'cpu_percent' : self.cpu_percent
+			'hostname' : self.hostname,
+			'cpu_percent' : self.cpu_percent,
+			'memory_usage' : self.memory_usage
 		}
 
 
-def obtain_statistic():
-	systemmonitor = SystemMonitor()
-	return systemmonitor
+class Sender:
 
-def serialize(data):
-	return dumps(data)
 
-def encrypt(key):
-	return new_hmac(key, serialized_data, sha1) + b' ' + serialized_data
+	def __init__(self, key):
+		self.key = key
 
+	def obtain_statistics(self):
+		systemmonitor = SystemMonitor()
+		return systemmonitor
+
+	def encrypt(self, serialized_data):
+		ENCODE = 'utf-8'
+		key_bytes = bytes(self.key, ENCODE)
+		hex_digest = new_hmac(key_bytes, serialized_data, sha1).hexdigest()
+		header = bytes(hex_digest, ENCODE)
+		return header + b' ' + serialized_data
+
+	def send(self):
+		SERVER_ADDR = 'http://127.0.0.1:5000/'
+		HEADERS = {'content-type' : 'application/octet-stream'}
+
+		statistics = self.obtain_statistics()
+		serialized_data = pickle_dumps(statistics.__dict__())
+		encrypted_data = self.encrypt(serialized_data)
+
+		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
+		return response
+
+
+sender = Sender("shared_key")
+res = sender.send()
+print(res.text)
