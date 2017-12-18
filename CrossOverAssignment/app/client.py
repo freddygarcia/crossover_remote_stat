@@ -37,21 +37,24 @@ class SystemMonitor:
 		uptime = None
 
 		if self.platform == 'Windows':
-			p = Popen("net stats Workstation", shell=True, stdin=PIPE, stdout=PIPE)
-			(child_stdin, child_stdout) = (p.stdin, p.stdout)
-			lines = child_stdout.readlines()
-			child_stdin.close()
-			child_stdout.close() 
+			try:
+				p = Popen("net stats Workstation", shell=True, stdin=PIPE, stdout=PIPE)
+				(child_stdin, child_stdout) = (p.stdin, p.stdout)
+				lines = child_stdout.readlines()
+				child_stdin.close()
+				child_stdout.close() 
 
-			info_cad = str(list(filter(lambda x: b'Statistics since' in x, lines))[0])
+				info_cad = str(list(filter(lambda x: b'Statistics since' in x, lines))[0])
 
-			date, time, ampm = info_cad.split()[2:5]
-			date = date.replace(',', '')
+				date, time, ampm = info_cad.split()[2:5]
+				date = date.replace(',', '')
 
-			m, d, y = [int(v) for v in date.split('/')]
-			H, M, S = [int(v) for v in time.split(':')]
+				m, d, y = [int(v) for v in date.split('/')]
+				H, M, S = [int(v) for v in time.split(':')]
 
-			uptime = datetime(y, m, d, H, M, S)
+				uptime = datetime(y, m, d, H, M, S)
+			except Exception as e:
+				uptime = None
 		else:
 			uptime = boottime()
 
@@ -67,8 +70,8 @@ class SystemMonitor:
 		}
 
 
-class Sender:
 
+class Sender:
 
 	def __init__(self, key):
 		self.key = key
@@ -95,7 +98,3 @@ class Sender:
 		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
 		return response
 
-
-sender = Sender("shared_key")
-res = sender.send()
-print(res.text)
