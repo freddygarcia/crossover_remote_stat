@@ -1,5 +1,6 @@
 from datetime import datetime
 from sys import argv
+from os import path
 from cryptography.fernet import Fernet
 from platform import system, node
 from pickle import dumps as pickle_dumps
@@ -175,11 +176,11 @@ class MonitorConnector:
 		encrypted_data = self.encrypt(statistics)
 		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
 
-		with ('log_python_system_monitor.log', 'w') as f:
+		file_f = path.join(path.dirname(argv[0]), 'log_python_system_monitor.log')
+
+		with open(file_f, 'w') as f:
 			f.write(response.text)
 
-
 if __name__ == '__main__':
-	key = argv[0]
-	monitorconnector = MonitorConnector(key)
+	monitorconnector = MonitorConnector('__key__')
 	monitorconnector.send_statistics()
