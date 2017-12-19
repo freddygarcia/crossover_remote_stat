@@ -1,6 +1,6 @@
 import unittest
 
-from crossover_remote_stat.app.client_side.client import SystemMonitor
+from crossover_remote_stat.app.client_side.system_monitor import SystemMonitor
 
 class TestSystemMonitor(unittest.TestCase):
 	"""docstring for TestSystemMonitor"""

@@ -47,6 +47,8 @@ class XMLHandler(object):
 		def get_client_alert(client_node):
 			"""Get alert node inside clients node"""
 			client = client_node.attrib
+			# for each 'client' node, append a 'alert' key to the dict
+			# with alert data
 			client[ITERATOR_ALERT_TAG] = [alert.attrib for alert in client_node]
 			return client
 
