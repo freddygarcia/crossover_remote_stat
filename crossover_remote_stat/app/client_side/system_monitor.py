@@ -1,17 +1,24 @@
 from datetime import datetime
-from sys import argv
-from os import path
 from cryptography.fernet import Fernet
+from logging import getLogger
 from platform import system, node
+from os import path
 from pickle import dumps as pickle_dumps
 from psutil import cpu_percent, virtual_memory
-from subprocess import Popen, PIPE
-from uptime import boottime
 from requests import post
-import win32con
-import win32evtlog
-import win32evtlogutil
-import winerror
+from subprocess import Popen, PIPE
+from sys import argv
+from uptime import boottime
+
+log = getLogger(__name__)
+
+try:
+	import win32con
+	import win32evtlog
+	import win32evtlogutil
+	import winerror
+except Exception as e:
+	log.warning('windows libs couldn"t be loaded, may not be correctly installed or running in non-windows platform')
 
 class SystemMonitor:
 
