@@ -190,7 +190,7 @@ class MonitorConnector:
 
 	def send_statistics(self):
 		from requests import post
-		SERVER_ADDR = 'http://104.236.235.68:5000/'
+		SERVER_ADDR = 'http://192.168.100.195:5000/'
 		HEADERS = {'content-type' : 'application/octet-stream'}
 
 		monitor = SystemMonitor()
