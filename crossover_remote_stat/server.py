@@ -1,3 +1,4 @@
+from datetime import datetime
 from cryptography.fernet import Fernet
 from flask import Flask, request
 from pickle import loads as pickle_loads
@@ -48,6 +49,10 @@ def initialize():
 
 def save_statistics(client, statistics):
 	'''client = DbModel, statistics = dict'''
+	client.os = statistics.get('os')
+	client.hostname = statistics.get('platform')
+	client.scan_date = datetime.now()
+
 	if statistics.os == 'Windows' and statistics.event_logs is not False:
 		for dc_win_event_log in statistics.event_logs :
 			w_event_log = WindowsEventLog.load_from_dict()

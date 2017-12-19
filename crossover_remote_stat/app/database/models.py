@@ -20,6 +20,7 @@ class Client(Base):
 	hostname = Column(String(50))
 	email = Column(String(50))
 	token = Column(String(50))
+	os = Column(String(20))
 	scan_date = Column(DateTime())
 	scan_result = relationship("ScanResult")
 	windows_event_log = relationship("WindowsEventLog")
