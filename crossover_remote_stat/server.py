@@ -2,7 +2,8 @@ from cryptography.fernet import Fernet
 from flask import Flask, request
 from pickle import loads as pickle_loads
 from socket import socket, AF_INET, SOCK_STREAM
-from crossover_remote_stat.app.database.models import Client, ScanType, ScanResult, Session
+from crossover_remote_stat.app.database.models import Client, ScanType, \
+										ScanResult, WindowsEventLog, Session 
 from crossover_remote_stat.app.xml_handler import XMLHandler
 
 app = Flask(__name__)
@@ -45,6 +46,17 @@ def initialize():
 		print('No valid xml file')
 		return False
 
+def save_statistics(client, statistics):
+	'''client = DbModel, statistics = dict'''
+	if statistics.os == 'Windows' and statistics.event_logs is not False:
+		for dc_win_event_log in statistics.event_logs :
+			w_event_log = WindowsEventLog.load_from_dict()
+			Session.add(w_event_log)
+			try:
+				Session.commit()
+			except Exception as e:
+				Session.rollback()
+
 @app.route("/",methods=['GET', 'POST'])
 def index():
 	# if post
@@ -64,6 +76,8 @@ def index():
 			d_statistics = decrypter.decrypt(incoming)
 			# unpickle data
 			statistics = pickle_loads(d_statistics)
+			# associate statistics to client
+			save_statistics(client, statistics)
 			return str(statistics)
 
 	return 'Works!'

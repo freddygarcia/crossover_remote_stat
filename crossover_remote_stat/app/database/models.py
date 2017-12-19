@@ -8,7 +8,7 @@ from crossover_remote_stat import config
 
 DB_CONFIG = dict(config._sections['DATABASE'])
 
-engine = create_engine('mysql+pymysql://{user}:{pass}@{host}/{name}'.format(**DB_CONFIG))
+engine = create_engine('{engi}://{user}:{pass}@{host}/{name}'.format(**DB_CONFIG))
 Base = declarative_base()
 Session = sessionmaker(engine)()
 
@@ -22,6 +22,7 @@ class Client(Base):
 	token = Column(String(50))
 	scan_date = Column(DateTime())
 	scan_result = relationship("ScanResult")
+	windows_event_log = relationship("WindowsEventLog")
 
 	@staticmethod
 	def load_from_dict(client_dict):
@@ -47,6 +48,7 @@ class ScanType(Base):
 	def __repr__(self):
 		return '<ScanType(description="{}")>'.format(self.description)
 
+
 class WindowsEventLog(Base):
 	__tablename__ = 'windows_event_log'
 
@@ -58,7 +60,20 @@ class WindowsEventLog(Base):
 	event_msg = Column(Text)
 	event_record = Column(Integer)
 	event_source = Column(String(50))
+
+	client = relationship("Client", back_populates="windows_event_log")
 	
+	@staticmethod
+	def load_from_dict(win_ev_log_dict):
+		w_event_log = WindowsEventLog()
+		w_event_log.event_id = win_ev_log_dict.get('event_id')
+		w_event_log.event_time = win_ev_log_dict.get('event_time')
+		w_event_log.event_type = win_ev_log_dict.get('event_type')
+		w_event_log.event_msg = win_ev_log_dict.get('event_msg')
+		w_event_log.event_record = win_ev_log_dict.get('event_record')
+		w_event_log.event_source = win_ev_log_dict.get('event_source')
+		return w_event_log
+
 
 class ScanResult(Base):
 	__tablename__ = 'scan_result'
