@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 
-CONFIG_FILENAME = './CrossOverAssignment/config.cfg'
+CONFIG_FILENAME = './crossover_remote_stat/config.cfg'
 
 def get_config():
 	config = ConfigParser()

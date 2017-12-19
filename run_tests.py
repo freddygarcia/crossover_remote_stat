@@ -1,9 +1,9 @@
 import unittest
 
 # importing test modules
-from CrossOverAssignment.tests import test_xml_handler
-from CrossOverAssignment.tests import test_system_monitor
-from CrossOverAssignment.tests import test_crossover_assignment
+from crossover_remote_stat.tests import test_xml_handler
+from crossover_remote_stat.tests import test_system_monitor
+from crossover_remote_stat.tests import test_crossover_assignment
 
 # initialize the test suite
 loader = unittest.TestLoader()
