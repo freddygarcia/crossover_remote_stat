@@ -1,24 +1,26 @@
+from pip import get_installed_distributions, main as pip_main
 from datetime import datetime
-from cryptography.fernet import Fernet
-from logging import getLogger
 from platform import system, node
 from os import path
 from pickle import dumps as pickle_dumps
-from psutil import cpu_percent, virtual_memory
-from requests import post
 from subprocess import Popen, PIPE
 from sys import argv
-from uptime import boottime
+import logging
 
-log = getLogger(__name__)
 
-try:
-	import win32con
-	import win32evtlog
-	import win32evtlogutil
-	import winerror
-except Exception as e:
-	log.warning('windows libs couldn"t be loaded, may not be correctly installed or running in non-windows platform')
+logging.basicConfig(format="[%(asctime)s] %(name)s %(levelname)s: %(message)s",
+						filename='crossover_remote_stat.log',
+						level=logging.DEBUG,
+						datefmt="%m/%d/%Y %I:%M:%S %p")
+
+
+DEPENDENCES = [
+	'cryptography==2.1.4',
+	'psutil==5.4.2',
+	'pypiwin32==220',
+	'requests==2.18.4',
+	'uptime==3.0.1'
+]
 
 class SystemMonitor:
 
@@ -54,13 +56,16 @@ class SystemMonitor:
 
 	def get_cpu_percent(self):
 		"""Get current system wide cpu usage as a percentage"""
+		from psutil import cpu_percent
 		return cpu_percent(interval=1)
 
 	def get_memory_usage(self):
 		"""Statistic about system memory usage (lib calculate usage depending on de platform)"""
+		from psutil import virtual_memory
 		return virtual_memory().percent
 
 	def get_uptime(self):
+		from uptime import boottime
 		uptime = None
 
 		platform = self.determine_os()
@@ -98,6 +103,16 @@ class SystemMonitor:
 		if platform != 'Windows':
 			return False
 
+		try:
+			import win32con
+			import win32evtlog
+			import win32evtlogutil
+			import winerror
+			logging.info('loaded windows libs')
+		except Exception as e:
+			logging.warning(e)
+			logging.warning('windows libs couldn"t be loaded, may not be correctly installed or running in non-windows platform')
+
 		SERVER = 'localhost'
 		LOGTYPE = 'Security'
 
@@ -108,7 +123,7 @@ class SystemMonitor:
 		except Exception as e:
 			return False
 
-		flags = win32evtlog.EVENTLOG_BACKWARDS_READ|win32evtlog.EVENTLOG_SEQUENTIAL_READ
+		flags = win32evtEVENTLOG_BACKWARDS_READ|win32evtlog.EVENTLOG_SEQUENTIAL_READ
 		events = win32evtlog.ReadEventLog(hand,flags,0)
 		evt_dict={win32con.EVENTLOG_AUDIT_FAILURE:'EVENTLOG_AUDIT_FAILURE',
 				  win32con.EVENTLOG_AUDIT_SUCCESS:'EVENTLOG_AUDIT_SUCCESS',
@@ -161,12 +176,12 @@ class SystemMonitor:
 			'memory_usage' : self.memory_usage
 		}
 
-
 class MonitorConnector:
 	def __init__(self, key):
 		self.key = key
 
 	def encrypt(self, statistics):
+		from cryptography.fernet import Fernet
 		ENCODE = 'utf-8'
 		key_bytes = bytes(self.key, ENCODE)
 		serialized_data = pickle_dumps(statistics.__dict__())
@@ -174,6 +189,7 @@ class MonitorConnector:
 		return encrypted_data
 
 	def send_statistics(self):
+		from requests import post
 		SERVER_ADDR = 'http://104.236.235.68:5000/'
 		HEADERS = {'content-type' : 'application/octet-stream'}
 
@@ -183,11 +199,30 @@ class MonitorConnector:
 		encrypted_data = self.encrypt(statistics)
 		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
 
-		file_f = path.join(path.dirname(argv[0]), 'log_python_system_monitor.log')
+		logging.info(response.text)
 
-		with open(file_f, 'w') as f:
-			f.write(response.text)
+	def check_installed_libs(self):
+		"""Install all dependences that arent already install in the system"""
+
+		# get all installed packages
+		installed_libs = get_installed_distributions()
+		# format the installed packages list in order to compare with
+		# dependences list
+		libs_to_compare = [depend.project_name +  '==' +  depend.version for depend in installed_libs]
+		# get the modules which arent in the system
+		libs_to_install = [depend for depend in DEPENDENCES  if depend not in libs_to_compare]
+		# install the dependeces
+		[pip_main(['install', package]) for package in libs_to_install]
+
 
 if __name__ == '__main__':
 	monitorconnector = MonitorConnector('__key__')
+	# Well, I don't really know if this step is necessary,
+	# I'm assuming the system may not have installed the modules
+	# this script needs to work.
+	# if this step isen't necessary, just remove this line code
+	# in order to avoid to install modules
+	monitorconnector.check_installed_libs()
+
+	# obtain statistics and send to server
 	monitorconnector.send_statistics()
