@@ -1,1 +1,2 @@
+from crossover_remote_stat import logging
 from crossover_remote_stat.app.database import populate_db

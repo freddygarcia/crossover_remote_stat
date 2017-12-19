@@ -6,7 +6,10 @@ from socket import socket, AF_INET, SOCK_STREAM
 from crossover_remote_stat.app.database.models import Client, ScanType, \
 										ScanResult, WindowsEventLog, Session 
 from crossover_remote_stat.app.xml_handler import XMLHandler
+from logging import getLogger
 
+
+log = getLogger(__name__)
 app = Flask(__name__)
 
 def initialize():

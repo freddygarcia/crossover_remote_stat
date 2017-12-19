@@ -1,5 +1,5 @@
 from crossover_remote_stat import server, config
-	
+
 # get port from config file
 PORT = int(config['SERVER']['PORT'])
 

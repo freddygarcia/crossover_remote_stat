@@ -1,4 +1,5 @@
 from datetime import datetime
+from logging import getLogger
 from sqlalchemy import Column, Integer, String, DateTime, \
 							Text, create_engine, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,6 +7,7 @@ from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.orm import relationship
 from crossover_remote_stat import config
 
+log = getLogger(__name__)
 DB_CONFIG = dict(config._sections['DATABASE'])
 
 engine = create_engine('{engi}://{user}:{pass}@{host}/{name}'.format(**DB_CONFIG))
