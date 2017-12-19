@@ -3,8 +3,8 @@ from xml.etree import ElementTree
 
 class XMLHandler(object):
 	"""Handle all interactions with clients xml file"""
-	CLIENTS_FILE = './CrossOverAssignment/data/clients.xml'
-	SCHEMA_FILE  = './CrossOverAssignment/data/clients_xml.xsd'
+	CLIENTS_FILE = './crossover_remote_stat/data/clients.xml'
+	SCHEMA_FILE  = './crossover_remote_stat/data/clients_xml.xsd'
 
 	@staticmethod
 	def read_source():

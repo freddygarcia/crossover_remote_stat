@@ -1,6 +1,6 @@
 import unittest
 
-from CrossOverAssignment.app.xml_handler import XMLHandler
+from crossover_remote_stat.app.xml_handler import XMLHandler
 
 class TestXMLHandler(unittest.TestCase):
 	"""docstring for XMLHanlderTest"""

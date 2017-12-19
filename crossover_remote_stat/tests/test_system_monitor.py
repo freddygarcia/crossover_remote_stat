@@ -1,12 +1,12 @@
 import unittest
 
-from CrossOverAssignment.app.client_side.client import SystemMonitor
+from crossover_remote_stat.app.client_side.client import SystemMonitor
 
 class TestSystemMonitor(unittest.TestCase):
 	"""docstring for TestSystemMonitor"""
 
 	def test_get_system_state(self):
-		systemmonitor = SystemMonitor()
+		systemmonitor = SystemMonitor().retrieve_statistics()
 		self.assertIsNot(systemmonitor.uptime, None)
 		self.assertIsInstance(systemmonitor.platform, str)
 		self.assertIsInstance(systemmonitor.cpu_percent, float)

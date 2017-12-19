@@ -1,6 +1,6 @@
 import unittest
 
-from CrossOverAssignment import get_config
+from crossover_remote_stat import get_config
 
 class TestCrossOverAssigment(unittest.TestCase):
 	"""docstring for TestCrossOverAssigment"""

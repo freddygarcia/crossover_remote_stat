@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, String, DateTime, \
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.orm import relationship
-from CrossOverAssignment import config
+from crossover_remote_stat import config
 
 DB_CONFIG = dict(config._sections['DATABASE'])
 
@@ -31,7 +31,7 @@ class Client(Base):
 		return client
 
 	def __repr__(self):
-		return '<Client(host="{}")>'.format(self.hostname)
+		return '<Client(ip={},host="{}")>'.format(self.ip_address,self.hostname)
 
 
 class ScanType(Base):

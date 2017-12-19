@@ -1,4 +1,4 @@
-from CrossOverAssignment.app.database.models import engine, Client, ScanType, Base, Session
+from crossover_remote_stat.app.database.models import engine, Client, ScanType, Base, Session
 
 Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)

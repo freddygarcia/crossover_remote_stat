@@ -1,11 +1,9 @@
-from hashlib import sha1
-from hmac import new as new_hmac
+from cryptography.fernet import Fernet
 from flask import Flask, request
 from pickle import loads as pickle_loads
 from socket import socket, AF_INET, SOCK_STREAM
-from uuid import uuid4
-from CrossOverAssignment.app.database.models import Client, ScanType, ScanResult, Session
-from CrossOverAssignment.app.xml_handler import XMLHandler
+from crossover_remote_stat.app.database.models import Client, ScanType, ScanResult, Session
+from crossover_remote_stat.app.xml_handler import XMLHandler
 
 app = Flask(__name__)
 
@@ -28,7 +26,7 @@ def initialize():
 		# insert into db new clients
 		for d_client in new_clients:
 			client = Client.load_from_dict(d_client)
-			client.token = str(uuid4())
+			client.token = Fernet.generate_key()
 			try:
 				for alert in d_client.get('alert'):
 					scanresult = ScanResult()
@@ -48,18 +46,24 @@ def initialize():
 		return False
 
 @app.route("/",methods=['GET', 'POST'])
-def hello():
+def index():
+	# if post
 	if request.method == 'POST':
+		# capture the incoming data
 		incoming = request.data
-		header, body = incoming.split(b' ')
+		# get the remote host address
+		remote_addr = request.remote_addr
+		# check if we expected to recieve something from that ip
+		client = Session.query(Client).filter(Client.ip_address == remote_addr).first()
 
-		client = Session.query(Client).filter(Client.token == header).first()
-
-		if hex_digest is not None:
-			statistics = pickle_loads(body)
-
-			# for stat in statistics.keys():
-			# 	scan = ScanResult()
-
+		# if client is found
+		if client is not None:
+			# generate decrypter algorithm
+			decrypter = Fernet(client.token)
+			# proccess the decrypt the data
+			d_statistics = decrypter.decrypt(incoming)
+			# unpickle data
+			statistics = pickle_loads(d_statistics)
 			return str(statistics)
-	return 'a'
+
+	return 'Works!'
