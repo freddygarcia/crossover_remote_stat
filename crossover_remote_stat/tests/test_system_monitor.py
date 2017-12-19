@@ -8,6 +8,7 @@ class TestSystemMonitor(unittest.TestCase):
 	def test_get_system_state(self):
 		systemmonitor = SystemMonitor().retrieve_statistics()
 		self.assertIsNot(systemmonitor.uptime, None)
+		self.assertIsNot(systemmonitor.event_logs, None)
 		self.assertIsInstance(systemmonitor.platform, str)
 		self.assertIsInstance(systemmonitor.cpu_percent, float)
 		self.assertIsInstance(systemmonitor.memory_usage, float)
