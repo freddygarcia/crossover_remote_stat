@@ -153,8 +153,7 @@ class SystemMonitor:
 		}
 
 
-class Sender:
-
+class MonitorConnector:
 	def __init__(self, key):
 		self.key = key
 
@@ -165,8 +164,8 @@ class Sender:
 		encrypted_data = Fernet(self.key).encrypt(serialized_data)
 		return encrypted_data
 
-	def send(self):
-		SERVER_ADDR = 'http://127.0.0.1:5000/'
+	def send_statistics(self):
+		SERVER_ADDR = 'http://104.236.235.68:5000/'
 		HEADERS = {'content-type' : 'application/octet-stream'}
 
 		monitor = SystemMonitor()
@@ -175,5 +174,3 @@ class Sender:
 		encrypted_data = self.encrypt(statistics)
 		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
 		return response
-
-
