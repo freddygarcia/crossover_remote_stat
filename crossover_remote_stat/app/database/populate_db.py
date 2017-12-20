@@ -3,12 +3,23 @@ from logging import getLogger
 
 log = getLogger(__name__)
 
-Base.metadata.drop_all(engine)
-log.info('database cleaned')
-Base.metadata.create_all(engine)
-log.info('database generated')
+def initialize_db():
+	Base.metadata.drop_all(engine)
+	log.info('database cleaned')
+	Base.metadata.create_all(engine)
+	log.info('database generated')
 
-Session.add(ScanType('cpu', 'Procesador'))
-Session.add(ScanType('memory', 'Memoria Virtual'))
-Session.commit()
-log.info('database populated')
+def populate():
+	Session.add(ScanType('cpu', 'Procesador'))
+	Session.add(ScanType('memory', 'Memoria Virtual'))
+
+	try:
+		Session.commit()
+		log.info('database populated')
+	except Exception as e:
+		log.error('could populate database')
+		log.error(e)
+
+def initialize_and_populate():
+	initialize_db()
+	populate()
