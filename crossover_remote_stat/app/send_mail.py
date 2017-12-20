@@ -10,9 +10,9 @@ def send_mail(to, message):
 	server.starttls()
 	# ... or this one
 	server.login(MAIL_CONFIG['user'],MAIL_CONFIG['pass'])
+
 	server.sendmail(MAIL_CONFIG['host'], to, message)
 	server.quit()
-
 
 def send_alert(to):
 	message = '''booo'''

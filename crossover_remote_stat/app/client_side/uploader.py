@@ -29,35 +29,35 @@ def upload_and_execute(connection_params):
 							port=connection_params['port'])
 	except Exception as e:
 		log.error('Connection cannot be stablished to host {}'.format(connection_params['ip']))
+		log.error(e)
 		return False
 
-	sftp_client  = ssh_client.open_sftp()
+	# create sftp instance
+	sftp_client  = None
 
-	tmp_folder = 'tmp_folder{}/'.format(str(uuid4())[:4])
-	system_monitor_path = path.join(tmp_folder, _SYSTEM_MONITOR_FILE_NAME)
-	dst = path.join(path.dirname(__file__), _SYSTEM_MONITOR_FILE_NAME)
-	# # create temp dir
-	sftp_client.mkdir(tmp_folder)	
+	try:
+		sftp_client  = ssh_client.open_sftp()
+	except Exception as e:
+		log.error(e)
+		log.error('Cannot stablished sftp connection with host {}'.format(connection_params['ip']))
+		return False
+
+	remote_temporal_folder = 'tmp_folder{}/'.format(str(uuid4())[:4])
+	remote_script_path = path.join(remote_temporal_folder, _SYSTEM_MONITOR_FILE_NAME)
+	# upload script path
+	local_script_path = path.join(path.dirname(__file__), _SYSTEM_MONITOR_FILE_NAME)
+	# create temp dir
+	sftp_client.mkdir(remote_temporal_folder)	
 	# upload remote file to temp folder
-	sftp_client.put(dst, system_monitor_path)
+	sftp_client.put(local_script_path, remote_script_path)
 	# execute remote script
-	show_command_result(ssh_client.exec_command('sudo python {}'.format(system_monitor_path)), 
+	show_command_result(ssh_client.exec_command('sudo python {}'.format(remote_script_path)), 
 							connection_params['password'])
 	# remove script and temp folder
-	sftp_client.remove(system_monitor_path)
-	sftp_client.rmdir(tmp_folder)
+	sftp_client.remove(remote_script_path)
+	sftp_client.rmdir(remote_temporal_folder)
 	# close connections
 	sftp_client.close()
 	ssh_client.close()
 
 	return True
-
-connection_params = {
-	'ip':'192.168.100.163',
-	'username':'freddie',
-	'password':'zoren101!',
-	'port':22
-}
-
-if __name__ == '__main__':
-	upload_and_execute(connection_params)

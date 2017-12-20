@@ -23,7 +23,6 @@ class XMLHandler(object):
 			schema = etree.parse(XMLHandler.SCHEMA_FILE)
 			# load xml clients (xml file) 
 			xml = etree.parse(XMLHandler.CLIENTS_FILE)
-
 			# generate a xmlschema validator
 			XMLSchema = etree.XMLSchema(schema)
 			# obtain xml valition

@@ -13,7 +13,8 @@ logging.basicConfig(format="[%(asctime)s] %(name)s %(levelname)s: %(message)s",
 						level=logging.DEBUG,
 						datefmt="%m/%d/%Y %I:%M:%S %p")
 
-
+# dependencies necessary to run the script
+# 
 DEPENDENCES = [
 	'cryptography==2.1.4',
 	'psutil==5.4.2',
@@ -66,8 +67,8 @@ class SystemMonitor:
 
 	def get_uptime(self):
 		from uptime import boottime
-		uptime = None
 
+		uptime = None
 		platform = self.determine_os()
 
 		if platform == 'Windows':
@@ -93,9 +94,6 @@ class SystemMonitor:
 			uptime = boottime()
 
 		return uptime
-
-	def __str__(self):
-		return 'SystemMonitor<hostname={hostname},os={os}>'.format(**self.__dict__()) 
 
 	def get_event_logs(self):
 		platform = self.determine_os()
@@ -169,6 +167,9 @@ class SystemMonitor:
 
 		return events_list
 
+	def __str__(self):
+		return 'SystemMonitor<hostname={hostname},os={os}>'.format(**self.__dict__())
+
 	def __dict__(self):
 		return {
 			'os' : self.platform,
@@ -178,6 +179,7 @@ class SystemMonitor:
 			'cpu_percent' : self.cpu_percent,
 			'memory_usage' : self.memory_usage
 		}
+
 
 class MonitorConnector:
 	def __init__(self, key):
