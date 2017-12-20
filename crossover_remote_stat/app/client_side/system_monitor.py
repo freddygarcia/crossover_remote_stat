@@ -108,10 +108,12 @@ class SystemMonitor:
 			import win32evtlog
 			import win32evtlogutil
 			import winerror
+			import win32evt
 			logging.info('loaded windows libs')
 		except Exception as e:
-			logging.warning(e)
-			logging.warning('windows libs couldn"t be loaded, may not be correctly installed or running in non-windows platform')
+			logging.error(e)
+			logging.error('windows libs couldn"t be loaded, may not be correctly installed or running in non-windows platform')
+			return False
 
 		SERVER = 'localhost'
 		LOGTYPE = 'Security'
@@ -121,9 +123,10 @@ class SystemMonitor:
 		try:
 			hand = win32evtlog.OpenEventLog(SERVER,LOGTYPE)
 		except Exception as e:
+			logging.error(e)
 			return False
 
-		flags = win32evtEVENTLOG_BACKWARDS_READ|win32evtlog.EVENTLOG_SEQUENTIAL_READ
+		flags = win32evt.EVENTLOG_BACKWARDS_READ|win32evtlog.EVENTLOG_SEQUENTIAL_READ
 		events = win32evtlog.ReadEventLog(hand,flags,0)
 		evt_dict={win32con.EVENTLOG_AUDIT_FAILURE:'EVENTLOG_AUDIT_FAILURE',
 				  win32con.EVENTLOG_AUDIT_SUCCESS:'EVENTLOG_AUDIT_SUCCESS',
