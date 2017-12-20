@@ -4,77 +4,96 @@ from flask import Flask, request
 from logging import getLogger
 from pickle import loads as pickle_loads
 from socket import socket, AF_INET, SOCK_STREAM
-from crossover_remote_stat.app.database.models import Client, ScanType, \
-										ScanResult, WindowsEventLog, Session 
-from crossover_remote_stat.app.xml_handler import XMLHandler
 from crossover_remote_stat.app.client_side.uploader import upload_and_execute
+from crossover_remote_stat.app.database.models import Client, Execution, \
+										Scan, WindowsEventLog, Session 
+
+from crossover_remote_stat.app.notifier import handle_alerts
+from crossover_remote_stat.app.xml_handler import XMLHandler
 
 
 log = getLogger(__name__)
 app = Flask(__name__)
 
 def save_clients(clients):
-	"""Read xml looking for client pc"""
-
-	# get just clients ip address as a set
-	clients_ip = { c.get('ip') for c in XMLHandler.get_clients() }
-	# check which clients exist
-	existing_clients = Session.query(Client).filter(Client.ip_address.in_(clients_ip)).all()
-	# get the ip address of saved clients 
-	existing_clients_ip = { x.ip_address for x in existing_clients }
-	# determine which clients are new in the xml file
-	new_clients_ip = clients_ip - existing_clients_ip
-	# get the complete new client data
-	new_clients = [ c for c in clients if c.get('ip') in new_clients_ip]
-
+	"""Read xml looking for client pc
+		It also retrieve a modified list of clients with
+		a key to encrypt the connection
+	"""
 	# insert into db new clients
-	for d_client in new_clients:
-		client = Client.load_from_dict(d_client)
-		client.token = Fernet.generate_key()
+	for d_client in clients:
+		client = Session.query(Client).filter(Client.ip_address == d_client.get('ip')).first()
+
+		if client is None:
+			client = Client.load_from_dict(d_client)
+
 		try:
-			for alert in d_client.get('alert'):
-				scanresult = ScanResult()
-				scanresult.scan_type_key = alert.get('type')
-				scanresult.limit_value = alert.get('limit')
-				scanresult.client = client
-				Session.add(scanresult)
+			generated_key = Fernet.generate_key()
+
+			execution = Execution(generated_key)
+			execution.memory_limit = d_client.get('memory')
+			execution.cpu_limit = d_client.get('cpu')
+			client.execution.append(execution)
+
+			d_client['token'] = generated_key 
+
 			Session.add(client)
 			Session.commit()
 		except Exception as e:
-			print(e)
+			log.error('client {} couldnt be saved'.format(client.ip_address))
+			log.error(e)
 			Session.rollback()
-			return False
-	return True
 
-def upload_client(clients):
-	if XMLHandler.validate_xml():
-		for client in clients:
-			upload_and_execute(client)
-	else:
-		log.warning('No valid xml file')
+	return clients
 
 def initialize():
-	# get all clients from xml
-	clients = XMLHandler.get_clients()
-	clients_where_saved = save_clients(clients)
+	if XMLHandler.validate_xml():
+		# get all clients from xml
+		clients = XMLHandler.get_clients()
+		clients_to_upload = save_clients(clients)
 
-	if clients_where_saved:
-		upload_client(clients)
+		for client in clients_to_upload:
+			if upload_and_execute(client):
+				log.info('upload success for client [{}]'.format(client['ip']))
+			else:
+				log.error('couldnt upload file to client [{}]'.format(client['ip']))
+	else:
+		no_valid_error = 'No valid xml file'
+		log.error(no_valid_error)
+		raise Exception(no_valid_error)
 
 def save_statistics(client, statistics):
 	'''client = DbModel, statistics = dict'''
-	client.os = statistics.get('os')
-	client.hostname = statistics.get('platform')
-	client.scan_date = datetime.now()
 
-	if statistics.os == 'Windows' and statistics.event_logs is not False:
-		for dc_win_event_log in statistics.event_logs :
+	if statistics.get('first_time_running'):
+		client.os = statistics.get('os')
+		client.uptime = statistics.get('uptime')
+		client.hostname = statistics.get('hostname')
+		client.execution[-1].start_date = datetime.now()	
+
+	client.execution[-1].scan.append(Scan(statistics))
+	client.execution[-1].uptime = statistics.get('uptime')
+
+	try:
+		Session.add(client)
+		Session.commit()
+		log.info('statistics saved!')
+	except Exception as e:
+		Session.rollback()
+		log.error(e)
+		log.error('fail saving statistics')
+
+	if statistics.get('os') == 'Windows' and statistics.get('event_logs') is not False:
+		for dc_win_event_log in statistics.get('event_logs') :
 			w_event_log = WindowsEventLog.load_from_dict()
 			Session.add(w_event_log)
 			try:
 				Session.commit()
 			except Exception as e:
 				Session.rollback()
+				log.error(e)
+				log.error('fail saving windows event logs')
+
 
 @app.route("/",methods=['GET', 'POST'])
 def index():
@@ -85,18 +104,19 @@ def index():
 		# get the remote host address
 		remote_addr = request.remote_addr
 		# check if we expected to recieve something from that ip
-		client = Session.query(Client).filter(Client.ip_address == remote_addr).first()
-
+		client = Session.query(Client).filter(Client.ip_address == remote_addr).one()
 		# if client is found
 		if client is not None:
 			# generate decrypter algorithm
-			decrypter = Fernet(client.token)
+			# look for last saved token
+			decrypter = Fernet(client.execution[-1].token)
 			# proccess the decrypt the data
 			d_statistics = decrypter.decrypt(incoming)
 			# unpickle data
 			statistics = pickle_loads(d_statistics)
-			# associate statistics to client
+			# associate statistics to execution
 			save_statistics(client, statistics)
+			handle_alerts(client, statistics)
 			return str(statistics)
 
 	return 'Works!'

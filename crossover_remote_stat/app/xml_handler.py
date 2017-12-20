@@ -48,7 +48,7 @@ class XMLHandler(object):
 			client = client_node.attrib
 			# for each 'client' node, append a 'alert' key to the dict
 			# with alert data
-			client[ITERATOR_ALERT_TAG] = [alert.attrib for alert in client_node]
+			[client.update({ alert.attrib['type'] : alert.attrib['limit']})  for alert in client_node]
 			return client
 
 		return [ get_client_alert(node) for node in xml_root.findall(ITERATOR_CLIENT_TAG)]

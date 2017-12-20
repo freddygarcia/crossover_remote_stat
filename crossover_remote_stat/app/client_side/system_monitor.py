@@ -1,21 +1,24 @@
+from tempfile import NamedTemporaryFile
 from pip import get_installed_distributions, main as pip_main
-from datetime import datetime
+from datetime import datetime, timedelta
 from platform import system, node
 from os import path
 from pickle import dumps as pickle_dumps
 from subprocess import Popen, PIPE
-from sys import argv
+from sys import argv, exit
+from threading import Timer
+from time import sleep
 import logging
 
 
 logging.basicConfig(format="[%(asctime)s] %(name)s %(levelname)s: %(message)s",
 						filename='crossover_remote_stat.log',
-						level=logging.DEBUG,
+						level=logging.INFO,
 						datefmt="%m/%d/%Y %I:%M:%S %p")
 
 # dependencies necessary to run the script
 # 
-DEPENDENCES = [
+DEPENDENCIES = [
 	'cryptography==2.1.4',
 	'psutil==5.4.2',
 	'pypiwin32==220',
@@ -32,6 +35,7 @@ class SystemMonitor:
 		self.memory_usage = None
 		self.hostname = None
 		self.event_logs = None
+		self.first_time_running = False
 
 	@staticmethod
 	def retrieve_statistics():
@@ -58,7 +62,7 @@ class SystemMonitor:
 	def get_cpu_percent(self):
 		"""Get current system wide cpu usage as a percentage"""
 		from psutil import cpu_percent
-		return cpu_percent(interval=1)
+		return cpu_percent(interval=3)
 
 	def get_memory_usage(self):
 		"""Statistic about system memory usage (lib calculate usage depending on de platform)"""
@@ -177,13 +181,23 @@ class SystemMonitor:
 			'hostname' : self.hostname,
 			'event_logs' : self.event_logs,
 			'cpu_percent' : self.cpu_percent,
-			'memory_usage' : self.memory_usage
+			'memory_usage' : self.memory_usage,
+			'first_time_running' : self.first_time_running
 		}
 
 
 class MonitorConnector:
-	def __init__(self, key):
+	def __init__(self, key, server, config):
 		self.key = key
+		self.server = server
+		self.config = config
+		self.first_time_running = True
+
+		now = datetime.now()
+		if self.config.get('life_mode', 'time') == 'time':
+			self.config['endtime'] = now + timedelta(seconds=int(config['life_time'])) 
+		elif self.config.get('life_mode') == 'date':
+			self.config['endtime'] = datetime.strptime(config['life_date'], '%Y/%m/%d %H:%M')
 
 	def encrypt(self, statistics):
 		from cryptography.fernet import Fernet
@@ -193,41 +207,79 @@ class MonitorConnector:
 		encrypted_data = Fernet(self.key).encrypt(serialized_data)
 		return encrypted_data
 
-	def send_statistics(self):
+	def send_statistics(self, statistics):
+		print('sending statistics')
 		from requests import post
-		SERVER_ADDR = 'http://192.168.100.195:5000/'
+		SERVER_ADDR = 'http://{}/'.format(self.server)
 		HEADERS = {'content-type' : 'application/octet-stream'}
-
-		monitor = SystemMonitor()
-		statistics = monitor.retrieve_statistics()
 
 		encrypted_data = self.encrypt(statistics)
 		response = post(SERVER_ADDR, data=encrypted_data, headers=HEADERS)
 
-		logging.info(response.text)
+	def loop(self):
+		"""Keep sending statistics until config endtime"""
 
-	def check_installed_libs(self):
-		"""Install all dependences that arent already install in the system"""
+		now = datetime.now()
+		while now < self.config.get('endtime'):
+			frecuency = int(self.config['frecuency'])
+
+			statistics = SystemMonitor().retrieve_statistics()
+			statistics.first_time_running = self.first_time_running
+			
+			self.send_statistics(statistics)
+
+			if self.first_time_running:
+				self.first_time_running = False
+	
+			now = datetime.now()
+
+		self.finish_script()
+
+	def finish_script(self):
+		print('script finished')
+		exit()
+
+	def install_dependencies_if_needed(self):
+		"""Install all dependencies that arent already install in the system"""
 
 		# get all installed packages
 		installed_libs = get_installed_distributions()
 		# format the installed packages list in order to compare with
-		# dependences list
+		# dependencies list
 		libs_to_compare = [depend.project_name +  '==' +  depend.version for depend in installed_libs]
 		# get the modules which arent in the system
-		libs_to_install = [depend for depend in DEPENDENCES  if depend not in libs_to_compare]
+		libs_to_install = [depend for depend in DEPENDENCIES  if depend not in libs_to_compare]
 		# install the dependeces
 		[pip_main(['install', package]) for package in libs_to_install]
 
 
 if __name__ == '__main__':
-	monitorconnector = MonitorConnector('__key__')
+	monitorconnector = MonitorConnector('__key__', '__server__',__config__)
+
 	# Well, I don't really know if this step is necessary,
 	# I'm assuming the system may not have installed the modules
 	# this script needs to work.
 	# if this step isen't necessary, just remove this line code
 	# in order to avoid to install modules
-	monitorconnector.check_installed_libs()
+	# monitorconnector.install_dependencies_if_needed()
 
 	# obtain statistics and send to server
-	monitorconnector.send_statistics()
+	monitorconnector.loop()
+
+
+def get_template_monitor(key, server, sys_monitor_config):
+	
+	me = None
+	# read file itself
+	with open(__file__) as f: me = f.read()
+
+	str_key = key.decode('utf-8')
+	me = me.replace('_'*2 + 'key' + '_'*2, str_key)
+	me = me.replace('_'*2 + 'server' + '_'*2, server)
+	me = me.replace('_'*2 + 'config' + '_'*2, str(dict(sys_monitor_config)))
+
+	temporal_file = NamedTemporaryFile(delete=False)
+	temporal_file.file.write(bytes(me, 'utf-8'))
+	temporal_file.close()
+
+	return temporal_file
