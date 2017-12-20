@@ -6,6 +6,8 @@ CONFIG_FILENAME = './crossover_remote_stat/config.cfg'
 def get_config():
 	config = ConfigParser()
 	config.read(CONFIG_FILENAME)
+	if config._sections == {}:
+		raise Exception('Config file cannot be found!')
 	return config
 
 config = get_config()
