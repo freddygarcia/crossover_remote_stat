@@ -18,4 +18,4 @@ config = get_config()
 config_log = dict(config._sections['LOGGING'])
 # initialize logger
 logging.basicConfig(format=config_log['frmt'],filename=config_log['file']
-						,level=logging.DEBUG,datefmt=config_log['date'])
+						,level=logging.INFO,datefmt=config_log['date'])
